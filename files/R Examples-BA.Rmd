@@ -1,0 +1,38 @@
+---
+title: "Interesting Forecasting Applications with R"
+author: "Bahadir Ayan - IE360 - Srping 2020"
+---
+```{r,echo=FALSE,results="hide"}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+```{r,echo=FALSE,eval=FALSE}
+rmarkdown::render("/home/baydogan/Courses/IE360/Guidelines/example_homework_0.Rmd",output_format="pdf_document")
+rmarkdown::render("/home/baydogan/Courses/IE360/Guidelines/example_homework_0.Rmd",output_format="html_document")
+```
+
+
+1. [Time series forecasting using ARIMA  models] (https://blogs.oracle.com/datascience/introduction-to-forecasting-with-arima-in-r)
+
+This example is important because it introduces the forecasting methodology using ARIMA models in R. The steps are first load R packages,examine your data, decompose your data,
+stationarity, autocorrelations and choosing model order, fitting an ARIMA Model and lastly evaluate and iterate. Example on Oracle explains these 7 steps very briefly with examples.
+That example very good for introductory data.
+
+2.[Time Series Analysis Using ARIMA Model in R](https://datascienceplus.com/time-series-analysis-using-arima-model-in-r/)
+
+This example is explaining methods for time series anaylsis.After that, exaple is explaining ARIMA Modeling by applications.
+Also that source supported with graphs and R codes. Lastly, source also contains information about model fitting, forecasting with  ARIMA models.
+
+3.[ARIMA modeling with R](https://www.datacamp.com/community/blog/arima-modeling-with-r)
+
+This example is also education tool for the ARIMA modeling with R. As a result, source explains: why ARIMA modeling with R is important, and it's application areas.
+
+4.[ARIMA models and Intervention Analysis](https://www.r-bloggers.com/arima-models-and-intervention-analysis/)
+
+This example is a complex one. It contains 6 different ARIMA models. Explaining methods very detailed and supported with graphs and R codes.
+
+5.[ARIMA model for forecasting-Example in R](http://ftp.uni-bayreuth.de/math/statlib/general/tsa2/Rissues.htm)
+
+This example explains the auto regression and moving average processes. Then, explains the ARIMA model for the time series.
+After that, explains the building ARIMA model and gives example in R. This example also supported with graphs and R Codes.
