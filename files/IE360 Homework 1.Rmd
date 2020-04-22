@@ -547,8 +547,8 @@ cov(PC_bistvscpi$PC_bist,PC_bistvscpi$PC_cpi)
 Correlation of percentage changes BIST and CPI data is -0.052 and covariance is -0.449. The correlation suggests that their relationship is weak and negligible. In contrast, covariance suggests that their relationship is moderate and nonnegligible. I believe, also BIST and CPI are financial statistics and bonded with a lot of other common variables. So, I think we can neglect their relations.
 
 
-You can reach my R script file from [Here](IE-360Homework1-Script.html)!
-
+You can reach my R codes from [Here](IE-360Homework1-Script.html)!
+You can reach my R script file from here >                     https://github.com/BU-IE-360/spring20-BahadirAyan/blob/master/files/IE360-Homework1-Script.R
 
 
 
