@@ -1,0 +1,564 @@
+---
+title: "IE 360 Homework 1 - Bahadir Ayan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+My research question is "Are BIST Index closing prices is related to USD/TL exchange rate and consumer price index?". To conduct this research I inspected BIST-100 closing prices, USD/TL exchange rate, and CPI monthly data between 2017 March to 2020 March.
+
+
+Firstly, the Borsa Istanbul 100 Index is a capitalization-weighted index composed of National Market companies except for investment trusts. The constituents of the BIST National 100 Index are selected based on pre-determined criteria directed for the companies to be included in the indices. Then, CPI is a measure that examines the weighted average of prices of a basket of consumer goods and services, such as transportation, food, and medical care. It is calculated by taking price changes for each item in the predetermined basket of goods and averaging them. Lastly, the USD/TL exchange rate is currency.
+
+My initial thought is BIST-100 closing prices is correlated negatively with USD/TL exchange rate and CPI but I am curious about this relationship is true and strong. To determine this I investigated data in 3 ways. I inspected raw data, diff() applied data, and percent changes of parameters.  
+
+These are the packages that I used in my analysis.
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+library(dplyr)
+library(data.table)
+library(readxl)
+library(lubridate)
+library(ggplot2)
+library(xts)
+library(zoo)
+library(tidyverse)
+```
+
+I read data from the excel file and adjusted the data. Then, I convert data to xts object
+
+```{r}
+#Reading USD/TL Exchange Rates from excel
+doviz=read_xlsx('/Users/bahadir/Documents/BahadirAyan/dovizaylik.xlsx')
+
+#Converting data to data.table format
+doviz_df<-as.data.table(doviz,keep.rownames = FALSE)
+
+#Adjusting the date data 
+doviz_df$Tarih<-as.yearmon(doviz_df$Tarih)
+doviz_df$Tarih<-as.Date(doviz_df$Tarih,format=c("%y-%m"))
+
+#Adjusting values to numeric data to prevent any further problems
+doviz_df$`TP DK USD A YTL`<-as.numeric(doviz_df$`TP DK USD A YTL`)
+
+#To create xts object
+doviz_ts<-xts(doviz_df$`TP DK USD A YTL`,doviz_df$Tarih) 
+```
+```{r, echo=FALSE}
+#Fiyat Endeksi Tuketici TUIK Aylik
+
+#Reading CPI from excel
+fiyatendeksi=read_xlsx('/Users/bahadir/Documents/BahadirAyan/fiyatendeksi.xlsx')
+
+#Converting data to data.table format
+fiyatendeksi_df<-as.data.table(fiyatendeksi,keep.rownames = FALSE)
+
+#Adjusting the date data 
+fiyatendeksi_df$Tarih<-as.yearmon(fiyatendeksi_df$Tarih)
+
+fiyatendeksi_df$Tarih<-as.Date(fiyatendeksi_df$Tarih, format=c("%m-%y"))
+
+#Adjusting values to numeric data to prevent any further problems. 
+#I divided values by 100 to plot graphs logically.
+fiyatendeksi_df$`TP FG J0`<-as.numeric(fiyatendeksi_df$`TP FG J0`/100)
+
+#To create xts object
+fiyatendeksi_ts<-xts(fiyatendeksi_df$`TP FG J0`,fiyatendeksi_df$Tarih)
+
+#BIST Endeksi ve Günlük İşlem Hacmi(İş Günü)
+#FİYAT) BİST 100 Endeks, Kapanış Fiyatlarına Göre(Ocak 1986=1) - Düzey /PRICE INDICES) BIST-100, According to Closing Price 
+
+#Reading USD/TL Rates from excel
+bist=read_xlsx('/Users/bahadir/Documents/BahadirAyan/bistaylik.xlsx')
+
+#Converting data to data.table format
+bist_df=as.data.table(bist,keep.rownames = FALSE)
+
+#Adjusting values to numeric data to prevent any further problems. 
+#I divided values by 10000 to plot graphs logically.
+bist_df$`TP MK F BILESIK`<-as.numeric(bist_df$`TP MK F BILESIK`/10000)
+
+#Adjusting the date data 
+bist_df$Tarih<-as.yearmon(bist_df$Tarih)
+
+bist_df$Tarih<-as.Date(bist_df$Tarih, format=c("%m-%y"))
+
+#To create xts object
+bist_ts<-xts(bist_df$`TP MK F BILESIK`,bist_df$Tarih)
+```
+
+
+
+There are graphs of the parameters' raw data. We can see how data changed over time.
+
+```{r,include=FALSE}
+plot.xts(bist_ts,
+         main ="BIST Index",
+         yaxis.right = FALSE,
+         col = 4,
+         grid.ticks.on = "months",
+         
+         
+)
+```
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("BIST Index(x10000)"),
+          col=c("blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+     
+)
+```
+
+Figure 1: BIST-100 Index Value over Time
+
+BIST-100 Index seems to fluctuate more than apart. We did not see all the minor fluctuations like day-to-day fluctuations because I analyzed data monthly.
+
+
+```{r,include=FALSE}
+plot.xts(doviz_ts,
+         main ="USD/TL Rate",
+         yaxis.right = FALSE,
+         col = 4,
+         grid.ticks.on = "months",
+         )
+```
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("USD/TL Rate"),
+          col=c("blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+          
+)
+```
+
+Figure 2: USD/TL Exchange Rate over Time
+
+
+```{r,include=FALSE,}
+plot.xts(fiyatendeksi_ts,
+         main ="CPI",
+         yaxis.right = FALSE,
+         col = 4,
+         grid.ticks.on = "months",
+         ylim=c(2.5,5)
+         
+)
+```
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("CPI Index(x100)"),
+          col=c("blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+)
+```
+
+Figure 3: Consumer Price Index Value over Time
+
+
+USD/TL exchange rate and CPI are less fluctuating but both of them steadily increased.
+
+
+
+
+
+I merged parameters to conduct further analysis.
+
+```{r}
+# Merge BIST and USD/TL rate data in order to make analysis
+bistvsdoviz<-merge(bist_ts,doviz_ts)
+```
+
+
+
+
+```{r,include=FALSE}
+
+plot.xts(bistvsdoviz, 
+         main ="BIST Index&USD/TL Rate vs Time",
+         yaxis.right = FALSE,
+         col = c(2,4),
+         grid.ticks.on = "months",
+         ylim = c(0,15)
+     
+)
+```
+
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("BIST(x10000)","USD/TL"),
+          col=c("red","blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+           )
+```
+
+Figure 4: BIST-100 Index Value & USD/TL Exchange Rate over Time
+
+
+```{r}
+#Find Correlation and Covariance of  BIST and USD/TL Exchange rate
+cor(bistvsdoviz$bist_ts,bistvsdoviz$doviz_ts)
+cov(bistvsdoviz$bist_ts,bistvsdoviz$doviz_ts)
+```
+
+
+Correlation of BIST-100 and USD/TL exchange rate is -0.323. That number suggests there is a strictly negative correlation among them but this correlation is not very strong. USD/TL exchange rate affects BIST-100 but that effect is moderate. Also, the Covariance of the BIST Index and USD/TL exchange rate is -0.288. That number also suggests that their relationship is weak or moderate. 
+
+
+
+I made same analysis on BIST and CPI data.
+```{r}
+#Merge BIST and CPI data in order to make analysis
+bistvsfiyatendeksi<-merge(bist_ts,fiyatendeksi_ts)
+```
+
+
+
+```{r,include=FALSE}
+plot.xts(bistvsfiyatendeksi, 
+          main ="BIST Index vs CPI",
+         yaxis.right = FALSE,
+         col = c(2,4),
+         grid.ticks.on = "months",
+        )
+```
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("BIST(x10000)","CPI(x100)"),
+          col=c("red","blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+)
+
+```
+
+Figure 5: BIST-100 Index Value & Consumer Price Index Value over Time
+
+
+```{r}
+#Find Correlation & Covarinace of BIST and CPI
+cor(bistvsfiyatendeksi$bist_ts,bistvsfiyatendeksi$fiyatendeksi_ts)
+cov(bistvsfiyatendeksi$bist_ts,bistvsfiyatendeksi$fiyatendeksi_ts)
+```
+
+Correlation of BIST and CPI is -0.152 and covariance is -0.06. These numbers suggest that relations among BIST and CPI are negatively but weak. 
+
+Additionally, I applied diff() function all data and made the same analyses on the data.  
+
+```{r}
+#Find Difference of parameters and omit the NA's
+bistdiff_ts<-diff(bist_ts)
+bistdiff_ts<-na.omit(bistdiff_ts)
+
+cpidiff_ts<-diff(fiyatendeksi_ts)
+cpidiff_ts<-na.omit(cpidiff_ts)
+
+dovizdiff_ts<-diff(doviz_ts)
+dovizdiff_ts<-na.omit(dovizdiff_ts)
+
+```
+
+```{r,include=FALSE }
+plot(bistdiff_ts,
+         main ="Diff() BIST Index",
+         yaxis.right = FALSE,
+         col = 4,
+         grid.ticks.on = "months",
+)
+
+```
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          
+          legend.names = c("Diff() BIST Index(x10000)"),
+          col=c("blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+          )
+```
+
+Figure 6: Diff() Applied BIST Index Value over Time
+
+```{r,include=FALSE}
+plot.xts(dovizdiff_ts,
+         main ="Diff() USD/TL Rate",
+         yaxis.right = FALSE,
+         col = 4,
+         grid.ticks.on = "months",
+         
+)
+```
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          
+          legend.names = c("Diff() USD/TL Rate"),
+          col=c("blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+          
+)
+```
+
+Figure 7: Diff() Applied USD/TL Exchange Rate over Time
+
+```{r,include=FALSE}
+plot.xts(cpidiff_ts,
+         main ="Diff() CPI ",
+         yaxis.right = FALSE,
+         col = 4,
+         grid.ticks.on = "months",
+         
+         
+)
+```
+
+
+```{r,echo=FALSE}
+
+addLegend("topleft",
+          
+          legend.names = c("Diff() CPI(x100)"),
+          col=c("blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+          
+)
+
+
+```
+
+Figure 8: Diff() Applied Consumer Price Index over Time
+
+
+DIFF BINDED PLOTS
+```{r}
+#Merge Diff BIST and USD/TL rate
+diff_bistvsdoviz<-merge(bistdiff_ts,dovizdiff_ts)
+diff_bistvsdoviz<-na.omit(diff_bistvsdoviz)
+
+diff_bistvscpi<-merge(bistdiff_ts,cpidiff_ts)
+diff_bistvscpi<-na.omit(diff_bistvscpi)
+```
+
+
+
+```{r,include=FALSE}
+plot.xts(diff_bistvsdoviz, 
+        main ="diff() BIST Index&USD/TL Rate vs Time",
+         yaxis.right = FALSE,
+         col = c(2,4),
+        grid.ticks.on = "months",
+)
+```
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("diff() BIST(x10000)","diff() USD/TL"),
+          col=c("red","blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+)
+```
+
+Figure 9: Diff() Applied BIST Index Value & USD/TL Exchange Rate over Time
+
+
+
+```{r}
+#Find Correlation and Covariance of diff() applied BIST and USD/TL Exchange rate
+cor(diff_bistvsdoviz$bistdiff_ts,diff_bistvsdoviz$dovizdiff_ts)
+cov(diff_bistvsdoviz$bistdiff_ts,diff_bistvsdoviz$dovizdiff_ts)
+
+```
+
+Correlation of diff() applied BIST and USD/TL exchange rate is -0.164 and covariance is -0.03. These numbers suggest that their relationship is negatively but a weak one. 
+
+```{r,include=FALSE}
+plot.xts(diff_bistvscpi, 
+         main ="diff() BIST Index vs CPI",
+         yaxis.right = FALSE,
+         col = c(2,4),
+         grid.ticks.on = "months",
+         
+         
+)
+```
+
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("diff() BIST(x10000)","diff() CPI(x100)"),
+          col=c("red","blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+          
+)
+```
+
+Figure 10: Diff() Applied BIST Index Value & Consumer Price Index Value over Time
+
+
+
+```{r}
+#Find Correlation & Covariance of diff() applied BIST and CPI
+cor(diff_bistvscpi$bistdiff_ts,diff_bistvscpi$cpidiff_ts)
+cov(diff_bistvscpi$bistdiff_ts,diff_bistvscpi$cpidiff_ts)
+```
+
+Correlation of diff() applied BIST and CPI data is -0.05 and covariance is -0.001. I can say that the relations of them are negligible ones. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lastly, I calculated percent changes of all data and made the same analyses on them. 
+
+
+
+
+
+
+```{r}
+#Calculating percent change of parameters
+PC_bist<-(bist_ts/stats::lag(bist_ts,-1) - 1)*100
+PC_doviz<-(doviz_ts/stats::lag(doviz_ts,-1) - 1)*100
+PC_cpi<-(fiyatendeksi_ts/stats::lag(fiyatendeksi_ts,-1) - 1)*100
+
+#Omitting the NA's
+PC_bist<-na.omit(PC_bist)
+PC_doviz<-na.omit(PC_doviz)
+PC_cpi<-na.omit(PC_cpi)
+```
+
+
+```{r}
+## Percentage Change Analysis of BIST and USD/TL Exchange Rate
+# Merging BIST and USD/TL percentage changes
+PC_bistvsdoviz<-as.xts(merge(PC_bist,PC_doviz,join="inner"))
+```
+
+
+
+
+```{r,include=FALSE}
+plot.xts(PC_bistvsdoviz,
+         main ="% Change of BIST Index vs USD/TL Exchange Rate",
+         yaxis.right = FALSE,
+         col = c(2,4),
+         grid.ticks.on = "months",
+         
+         
+)
+```
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("% change BIST","% change USD/TL"),
+          col=c("red","blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+          
+)
+```
+
+Figure 11: Percentage Changes of BIST Index Value & USD/TL Exchange Rate over Time
+
+
+
+```{r}
+#Finding Correlation&Covariance of Percentage changes
+cor(PC_bistvsdoviz$PC_bist,PC_bistvsdoviz$PC_doviz)
+cov(PC_bistvsdoviz$PC_bist,PC_bistvsdoviz$PC_doviz)
+```
+
+
+Correlation of percentage of BIST and USD/TL exchange rate is -0.18 and covariance is -6.437. Correlation numbers suggest that their relations are negatively and weak-to-moderate one but covariance number suggests that their variances are inversely strong. I believe that covariance is high because BIST and USD/TL exchange rates are financial statistics. So, two of them fluctuate the same time when the Turkish economy disrupted or relieved. 
+
+```{r}
+# Merging BIST and CPI percentage changes
+PC_bistvscpi<-as.xts(merge(PC_bist,PC_cpi, join="inner"))
+```
+
+```{r,include=FALSE}
+plot.xts(PC_bistvscpi, 
+         main ="% Change of BIST Index vs CPI",
+         yaxis.right = FALSE,
+         col = c(2,4),
+         grid.ticks.on = "months",
+         
+         
+)
+```
+
+```{r,echo=FALSE}
+addLegend("topleft",
+          legend.names = c("% change BIST","% change CPI"),
+          col=c("red","blue"),
+          lty=c(1,1), lwd=c(1,1),
+          cex=0.65,
+          bty="o"
+          
+)
+```
+
+Figure 12: Percentage Changes of BIST Index Value & Consumer Price Index over Time
+
+
+```{r}
+#Finding Correlation&Covariance of Percentage changes
+
+cor(PC_bistvscpi$PC_bist,PC_bistvscpi$PC_cpi)
+cov(PC_bistvscpi$PC_bist,PC_bistvscpi$PC_cpi)
+
+```
+
+Correlation of percentage changes BIST and CPI data is -0.052 and covariance is -0.449. The correlation suggests that their relationship is weak and negligible. In contrast, covariance suggests that their relationship is moderate and nonnegligible. I believe, also BIST and CPI are financial statistics and bonded with a lot of other common variables. So, I think we can neglect their relations.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
