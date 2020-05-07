@@ -416,4 +416,4 @@ As seen on the graphs, I removed 24 hours seasonality but weekly seasonality eff
 
 
 
-You can reach my script file form here: https://github.com/BU-IE-360/spring20-BahadirAyan/blob/master/files/IE 360 Homework 2%263.R
+You can reach my script file form here: https://github.com/BU-IE-360/spring20-BahadirAyan/blob/master/files/IE360Homework2%263.R
