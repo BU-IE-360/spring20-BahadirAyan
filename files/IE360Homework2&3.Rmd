@@ -422,4 +422,4 @@ That remained seasonality can be reasoned by weekend-weekday difference or holid
 
 
 
-You can reach my script file form here: https://github.com/BU-IE-360/spring20-BahadirAyan/blob/master/files/IE360Homework2%263.R
+You can reach my script file from here: https://github.com/BU-IE-360/spring20-BahadirAyan/blob/master/files/IE360Homework2%263.R
