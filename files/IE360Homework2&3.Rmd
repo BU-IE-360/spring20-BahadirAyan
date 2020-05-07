@@ -36,7 +36,7 @@ electricity_consumption
 ```
 
 
-After that I adjusted data because R read electric consumption data as a factor. I convert electric consumption data to character and trimmed last 3 character of it. I did this because electric consumption data had dot and comma at the same time. In according to, convert them to number correctly I did these adjustments.
+After that I adjusted data because R read electric consumption data as a factor. I convert electric consumption data to character and trimmed last 3 character of it. I did this because electric consumption data had dot and comma at the same time. I trimmed the coma by that way and convert the data to number appropriately.
 
 
 ```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
@@ -60,7 +60,7 @@ n.colsum = function(df, n = 24){
 }
 ```
 
-I created hourly electric consumption data
+I created hourly electric consumption data. I used frequency=24*365 in order to create hourly time series.
 
 ```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
 electricity_consumption_ts_hourly<-ts(electricity_consumption_2,start=c(2016,1),freq=365*24)
@@ -191,6 +191,7 @@ ec_weekly_multip
 
 plot(ec_weekly_multip)
 ```
+
 This graph represents decomposition of weekly electric consumtion data by multiplicative type.
 
 
@@ -210,6 +211,7 @@ ec_monthly_multip
 plot(ec_monthly_multip)
 
 ```
+
 This graph represents decomposition of monthly electric consumtion data by multiplicative type.
 
 
@@ -281,10 +283,12 @@ deseasonalized_ec_hourly<-electricity_consumption_ts_hourly/ec_hourly_multip$sea
 
 #Raw Hourly Data
 ts.plot(electricity_consumption_ts_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Electricity Consumption Hourly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
 
 
 #Deseasonalized hourly data
 ts.plot(deseasonalized_ec_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Deseasonalized Electricity Consumption Hourly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
 
 ```
 
@@ -354,7 +358,7 @@ points(ARmodel_hourly_fitted, type="l",col=2, lty=2)
 
 
 
-Before make any predictions, I calculated average of seasonal and trend components because when I detrend the data, trending operation trims first and last trend components
+Before make any predictions, I calculated average of seasonal and trend components because when I detrend the data, trending operation trims first and last trend components. To solve this problem, I will realize my prediction with using seasonality and trends' average values.
 
 ```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
 seasonalavg<-mean(ec_hourly_multip$seasonal)
@@ -377,9 +381,9 @@ After that numerical adjustments, I made my predictions and I adjusted them by m
 ts.plot(electricity_consumption_ts_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Electricity Consumption Hourly (2016-2020)")
 legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
 
-ARmodel_hourly_forecast<-predict(ARmodel_hourly,n.ahead=2400)$pred
+ARmodel_hourly_forecast<-predict(ARmodel_hourly,n.ahead=24)$pred
 
-ARmodel_hourly_forecast_se<-predict(ARmodel_hourly,n.ahead=2400)$se
+ARmodel_hourly_forecast_se<-predict(ARmodel_hourly,n.ahead=24)$se
 
 ARmodel_hourly_forecast_new<-ARmodel_hourly_forecast*seasonalavg*trendavg
 ARmodel_hourly_forecast_new
@@ -399,7 +403,9 @@ points(ARmodel_hourly_forecast_new + 1.96*ARmodel_hourly_forecast_se_new, type =
 
 
 
-Finally, I made operations that I mentioned on the introduction. Dealing with EPIAS data was good experience for me. I identified seasonalities and trends. In my R script I tried to deseasonalize and detrend all series. By my method, I removed single seasonalites very well but I cannot removed multiple seasonalities in one time series. As a consequence, in hourly electric consumption time series I removed 24 hour seasonality but I cannot removed weekly seasonality on my hourly time series. I put autocorrelation graphs of raw data and detrended&deseasonalized data below. In contrast to these, my predictions seems reliable and good when we looked on them in the graph.  
+
+
+Finally, I made operations that I mentioned on the introduction. Dealing with EPIAS data was good experience for me. I identified seasonalities and trends. In my R script I tried to deseasonalize and detrend all series. By my method, I removed single seasonalites very well but I cannot removed multiple seasonalities in one time series. As a consequence, in hourly electric consumption time series I removed seasonlity mostly but still there is some seasonality remains on my hourly time series. I put autocorrelation graphs of raw data and detrended&deseasonalized data below. In contrast to these, my predictions seems reliable and good when we looked on them in the graph.  
 
 ```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
 acf(electricity_consumption_ts_hourly,lag.max = 500,main="Autocorrelation of Hourly Electric Consumption")
@@ -408,10 +414,10 @@ acf(electricity_consumption_ts_hourly,lag.max = 500,main="Autocorrelation of Hou
 
 
 ```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
-acf(detrend_ec_hourly,na.action=na.omit,lag.max = 500,main="Autocorrelation of Detrended&Deseasonalized Hourly Electric Consumption")
+acf(detrend_ec_hourly,na.action=na.omit,lag.max = 500,main="Autocorrelation of Detrended&Deseasonalized Hourly EC")
 ```
 
-As seen on the graphs, I removed 24 hours seasonality but weekly seasonality effect remains on hourly data.
+That remained seasonality can be reasoned by weekend-weekday difference or holidays etc. I couldn't identified the reasons properly by my method but I believe in order to identify and remove whole seasonality, I need to make further analysis and use different ways. 
 
 
 

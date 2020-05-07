@@ -1,0 +1,427 @@
+---
+title: "IE 360 HW 2&3"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+There is my Homework 2&3. In this homework, we are using EPIAS electric consumtion data in between 2016-2020 by hourly. I believe, this homework's main purpose is analyzing time series more deeply and making forecasts based on our analyses. 
+
+Firstly, I aggregated the raw data to create different time series. Than, I decomposed time series and identified the seasonalities in series. After that, I decided a pattern and started to working on it. I deseasonalized and detrended the data based on that pattern and built model based on deseasonalized and detrended hourly time series. Finally, I made predictions for future 24 hours.
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+setwd("/Users/bahadir/Documents/BahadirAyan")
+getwd()
+library(dplyr)
+library(data.table)
+library(readxl)
+library(lubridate)
+library(ggplot2)
+library("xts")
+library("zoo")
+library("tidyverse")
+library(stats)
+```
+
+I read the data from csv data. 
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+
+electricity_consumption<-read.csv("electricty.csv")
+electricity_consumption
+
+```
+
+
+After that I adjusted data because R read electric consumption data as a factor. I convert electric consumption data to character and trimmed last 3 character of it. I did this because electric consumption data had dot and comma at the same time. I trimmed the coma by that way and convert the data to number appropriately.
+
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+electricity_consumption_2<-as.data.frame(electricity_consumption$Tüketim.Miktarı..MWh.) 
+
+names(electricity_consumption_2)[names(electricity_consumption_2)=="electricity_consumption$Tüketim.Miktarı..MWh."]<-"consumption"
+
+
+electricity_consumption_2$consumption<-as.character(electricity_consumption_2$consumption)
+
+electricity_consumption_2$consumption<-substr(electricity_consumption_2$consumption,1,nchar(electricity_consumption_2$consumption)-3)
+
+electricity_consumption_2$consumption<-as.numeric(electricity_consumption_2$consumption)
+```
+
+I used that function to aggregate data for different periods.
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+n.colsum = function(df, n = 24){
+  aggregate(x = df, by = list(gl(ceiling(nrow(df)/n), n)[1:nrow(df)]),FUN = sum)
+}
+```
+
+I created hourly electric consumption data. I used frequency=24*365 in order to create hourly time series.
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+electricity_consumption_ts_hourly<-ts(electricity_consumption_2,start=c(2016,1),freq=365*24)
+
+ts.plot(electricity_consumption_ts_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Electricity Consumption Hourly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+```
+
+
+I created daily, weekly and monthly data by this way
+
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+ec_nothour_daily<-n.colsum(electricity_consumption_2,n=24)
+ec_nothour_daily$Group.1<-NULL
+
+electricity_consumption_ts_daily<-ts(ec_nothour_daily,start=c(2016,1),freq=365)
+
+ts.plot(electricity_consumption_ts_daily, 
+        xlab = "Year", 
+        ylab = "Electricity Consumption",
+        main="Electricity Consumption Daily (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+```
+
+
+
+
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE}
+#Create Weekly Data
+
+ec_nothour_weekly<-n.colsum(electricity_consumption_2,n=168)
+ec_nothour_weekly$Group.1<-NULL
+
+
+
+ec_nothour_weekly<-ec_nothour_weekly[-c(226),]
+
+electricity_consumption_ts_weekly<-ts(ec_nothour_weekly,start=c(2016,1),freq=52)
+
+ts.plot(electricity_consumption_ts_weekly,
+        xlab = "Year",
+        ylab = "Electricity Consumption",
+        main="Electricity Consumption Weekly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+
+```
+
+
+
+
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE}
+#Create Monthly Data
+ec_nothour_monthly<-n.colsum(electricity_consumption_2,n=672)
+ec_nothour_monthly$Group.1<-NULL
+
+ec_nothour_monthly<-ec_nothour_monthly[-c(57),]
+
+electricity_consumption_ts_monthly<-ts(ec_nothour_monthly,start=c(2016,1),freq=12)
+
+ts.plot(electricity_consumption_ts_monthly, xlab = "Year", 
+        ylab = "Electricity Consumption",
+        main="Electricity Consumption Monthly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+
+```
+
+
+
+
+
+
+
+I decomposed hourly data by multiplicative and additive types to decide which method to use. There is no significant difference multiplicative decomposition and additive decompostion. I decided to use multiplicative type.
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+##Decompose Hourly Data
+electricity_consumption_ts_hourly
+is.ts(electricity_consumption_ts_hourly)
+#Multiplicative
+ec_hourly_multip<-decompose(electricity_consumption_ts_hourly,type="multiplicative")
+
+ec_hourly_multip
+
+plot(ec_hourly_multip)
+
+#Additive
+
+electricity_consumption_ts_hourly_log<-log(electricity_consumption_ts_hourly)
+
+ec_hourly_additive<-decompose(electricity_consumption_ts_hourly,type="additive")
+
+ec_hourly_additive
+
+plot(ec_hourly_additive)
+```
+
+As seen on the graph, hourly data has increasing trend in between 2016-2018. 
+In contrast, has steady but low decrease in between 2018-2020. Additionally, hourly data has seasonality and it can be seen on the graph.
+
+
+
+
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+ec_daily_multip<-decompose(electricity_consumption_ts_daily,type="multiplicative")
+
+ec_daily_multip
+
+plot(ec_daily_multip)
+```
+
+This graph represents decomposition of daily electric consumtion data by multiplicative type.
+
+As seen on the graph, daily data has increasing trend in between 2016-2018. 
+In contrast, has steady but low decrease in between 2018-2020. Additionally, daily data  has strong  seasonality
+can be seen on the graph.
+
+
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE}
+##Decompose weekly Data
+
+ec_weekly_multip<-decompose(electricity_consumption_ts_weekly,type="multiplicative")
+
+ec_weekly_multip
+
+plot(ec_weekly_multip)
+```
+
+This graph represents decomposition of weekly electric consumtion data by multiplicative type.
+
+
+As seen on the graph, weekly data has increasing trend in between 2016-2018. 
+In contrast, has steady but low decrease in between 2018-2020. Additionally, weekly data  has strong  seasonality
+can be seen on the graph.
+
+
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE}
+##Decompose Monthly Data
+
+ec_monthly_multip<-decompose(electricity_consumption_ts_monthly,type="multiplicative")
+
+ec_monthly_multip
+
+plot(ec_monthly_multip)
+
+```
+
+This graph represents decomposition of monthly electric consumtion data by multiplicative type.
+
+
+
+As seen on the graph, monthly data has increasing trend in earlier years.  
+After that, trend becomes steady. Additionally, monthly data has strong seasonality can be seen on graph
+
+
+We can see there are different seasonalities on all decomposition graphs. In order to build successfull model, I will try try to remove those seasonalities in electric consumtpion data.
+
+
+
+
+
+I looked auto correlation graphs of series to identify patterns. 
+
+Firstly, I looked autocorrelation of time series of hourly electric consumption data.
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+acf(electricity_consumption_ts_hourly,lag.max = 50,main="Autocorrelation of Hourly Electric Consumption")
+```
+
+Hourly data has strong correlation on lag=24 and that correlation repeats every k*24 lag. Therefore, I believe  there is a pattern. Additionally, it makes sense a lot because lag=24 represents 1 day pattern.
+
+
+
+
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+acf(electricity_consumption_ts_daily,lag.max = 50,main="Autocorrelation of Daily Electric Consumption")
+
+```
+
+Daily data has strong correlation on lag=7 and that correlation repeats every k*7 lag. Therefore I believe say there is a pattern. Additionally, it makes sense a lot because lag=7 represents 1 week pattern.
+
+
+
+
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+acf(electricity_consumption_ts_weekly,lag.max = 50,main="Autocorrelation of Weekly Electric Consumption")
+```
+
+Weekly data has moderate correlation on lag=12 and that correlation repeats every k*12.Therefore, I believe there is a pattern.
+
+
+
+
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+acf(electricity_consumption_ts_monthly,lag.max = 24,main="Autocorrelation of Monthly Electric Consumption")
+```
+
+Monthly data has moderate correlation on lag =3 and lag= 6. We can say there is pattern. Additionally, it makes sense because we can say 
+quartlery electric consumption has negative correlation but in 2 quarters electric consumption has positive correlation.
+
+
+
+
+
+I decided to work on hourly data and I know hourly data has seasonality for 24 hours. Additionally, daily data has seasonality for 7 days. I can conclude that there is 168 hour pattern on hourly data.  To build my model, I need to remove that seasonality and trend. I will start by deseasonalizin the hourly time series.
+
+
+
+
+I deseasonalized hourly data by this way and I put raw data plot and deaseasonalized data plot to see changes.
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+#Deseasonalize hourly data
+deseasonalized_ec_hourly<-electricity_consumption_ts_hourly/ec_hourly_multip$seasonal
+
+#Raw Hourly Data
+ts.plot(electricity_consumption_ts_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Electricity Consumption Hourly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+
+
+#Deseasonalized hourly data
+ts.plot(deseasonalized_ec_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Deseasonalized Electricity Consumption Hourly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+
+```
+
+
+
+
+
+After the deseasonalization process, I trended the data. I used similar approach to remove trends. Again, I put detrended data plot to see changes.
+
+
+
+
+
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+detrend_ec_hourly<-deseasonalized_ec_hourly/ec_hourly_multip$trend
+
+ts.plot(detrend_ec_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Detrended&Deseasonalized Electricity Consumption Hourly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+
+```
+
+
+
+
+
+Afther these operation. I started to build a model. Firtly, I started with AR Model. I changed p paramater to obtain better model and I decided on 7 value because 7 value generated minimum AIC value
+
+```{r}
+ARmodel_hourly<-arima(detrend_ec_hourly,order=c(7,0,0))
+print(ARmodel_hourly)
+AIC(ARmodel_hourly)
+
+```
+
+
+
+
+
+After that, I built MA model. Again, I changed q paramater to obtain better model and I decided on 7 value because 7 value generated minimum AIC value
+
+```{r}
+MAmodel_hourly<-arima(detrend_ec_hourly,order=c(0,0,7))
+print(MAmodel_hourly)
+AIC(MAmodel_hourly)
+```
+
+
+
+
+
+
+AR Model has better AIC value than MA model. Therefore, I used AR model to make my predictions. I put detrended & deseasonalized hourly electric consumption graph to show how my model fit on the data.
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+ARmodel_hourly_fitted<- detrend_ec_hourly-residuals(ARmodel_hourly)
+
+ts.plot(detrend_ec_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Detrended&Deseasonalized Electricity Consumption Hourly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+
+points(ARmodel_hourly_fitted, type="l",col=2, lty=2)
+```
+
+
+
+
+
+
+
+Before make any predictions, I calculated average of seasonal and trend components because when I detrend the data, trending operation trims first and last trend components. To solve this problem, I will realize my prediction with using seasonality and trends' average values.
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+seasonalavg<-mean(ec_hourly_multip$seasonal)
+seasonalavg
+
+na.omitted<-na.omit(ec_hourly_multip$trend)
+trendavg<-mean(na.omitted)
+trendavg
+```
+
+
+
+
+
+
+
+After that numerical adjustments, I made my predictions and I adjusted them by multiplying with seasonal and trend data. I also put my predictions by multiplying with standard error in order to show max and min points of my prediction. Lastly, I put my prediction as a point on the graph.
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+ts.plot(electricity_consumption_ts_hourly,xlab = "Year", ylab = "Electricity Consumption",main="Electricity Consumption Hourly (2016-2020)")
+legend("topleft",col="blue",legend=c("ECx1000(MwH)"),cex=0.5)
+
+ARmodel_hourly_forecast<-predict(ARmodel_hourly,n.ahead=24)$pred
+
+ARmodel_hourly_forecast_se<-predict(ARmodel_hourly,n.ahead=24)$se
+
+ARmodel_hourly_forecast_new<-ARmodel_hourly_forecast*seasonalavg*trendavg
+ARmodel_hourly_forecast_new
+
+ARmodel_hourly_forecast_se_new<-ARmodel_hourly_forecast_se*seasonalavg*trendavg
+ARmodel_hourly_forecast_se_new
+
+points(ARmodel_hourly_forecast_new,type="l",col=2)
+points(ARmodel_hourly_forecast_new - 1.96*ARmodel_hourly_forecast_se_new, type = "l", col = 2, lty = 2)
+points(ARmodel_hourly_forecast_new + 1.96*ARmodel_hourly_forecast_se_new, type = "l", col = 2, lty = 2)
+
+```
+
+Also, I put graph of only prediction to see them clearly.
+```{r}
+plot(ARmodel_hourly_forecast_new)
+```
+
+
+
+
+
+
+Finally, I made operations that I mentioned on the introduction. Dealing with EPIAS data was good experience for me. I identified seasonalities and trends. In my R script I tried to deseasonalize and detrend all series. By my method, I removed single seasonalites very well but I cannot removed multiple seasonalities in one time series. As a consequence, in hourly electric consumption time series I removed 24 hour seasonality but I cannot removed weekly seasonality on my hourly time series. I put autocorrelation graphs of raw data and detrended&deseasonalized data below. In contrast to these, my predictions seems reliable and good when we looked on them in the graph.  
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+acf(electricity_consumption_ts_hourly,lag.max = 500,main="Autocorrelation of Hourly Electric Consumption")
+
+```
+
+
+```{r,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+acf(detrend_ec_hourly,na.action=na.omit,lag.max = 500,main="Autocorrelation of Detrended&Deseasonalized Hourly Electric Consumption")
+```
+
+As seen on the graphs, I removed 24 hours seasonality but weekly seasonality effect remains on hourly data.
+
+
+
+
+You can reach my script file form here: https://github.com/BU-IE-360/spring20-BahadirAyan/blob/master/files/IE360Homework2%263.R
