@@ -15,4 +15,4 @@
 
 ## Final Project Report
 
-[Here](files/IE360_Project_Report.html) 
+[Here](files/IE360_Project_Report.html) is our project report.
